@@ -1,0 +1,56 @@
+right_bar_sprite:
+	.dw %0111111111111110
+	.dw %0111111111111110
+	.dw %0111000000001110
+	.dw %0110000000000110
+	.dw %0110110011000110
+	.dw %0110110011000110
+	.dw %0110000000000110
+	.dw %0110000000000110
+	.dw %0110111111000110
+	.dw %0110011110000110
+	.dw %0111000000001110
+	.dw %0111110000111110
+	.dw %0111111111111110
+	.dw %0111111111111110
+
+render_right_bar:
+	; Called
+
+	; Set LCD pos
+	call _LCD_BUSY_QUICK
+	ld a, LCD_COL+$A
+	out (LCDinstPort), a
+	call _LCD_BUSY_QUICK
+	ld a, LCD_ROW
+	out (LCDinstPort), a
+
+	ld hl, right_bar_sprite
+	inc hl
+	call draw_14
+
+	; Set LCD pos
+	call _LCD_BUSY_QUICK
+	ld a, LCD_COL+$B
+	out (LCDinstPort), a
+	call _LCD_BUSY_QUICK
+	ld a, LCD_ROW
+	out (LCDinstPort), a
+
+	ld hl, right_bar_sprite
+	call draw_14
+
+	ret
+
+draw_14:
+	; Called. Expects hl to point to one of the sides of a 16-wide sprite
+	ld b, 14
+draw_14_loop:
+	call _LCD_BUSY_QUICK
+	ld a, (hl)
+	out (LCDdataPort), a
+	inc hl \ inc hl
+
+	djnz draw_14_loop
+
+	ret

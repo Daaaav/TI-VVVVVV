@@ -17,8 +17,9 @@ _LCD_BUSY_QUICK .EQU $000B
 
 #include "main.z80"
 #include "render_room.z80"
-#include "sprites.z80"
+#include "render_right_bar.z80"
 #include "roomdata.z80"
+#include "sprites.z80"
 
 
 .end

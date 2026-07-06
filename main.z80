@@ -4,6 +4,8 @@ main:
 
 	B_CALL(_ClrLCDFull)
 
+	call render_right_bar
+
 main_loop:
 	; all the code here
 	call render_room
