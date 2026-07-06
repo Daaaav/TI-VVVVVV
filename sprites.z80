@@ -102,3 +102,74 @@ tile_not_8C:
 tile_not_8D:
 	ld de, %0000000000000000
 	ret
+
+
+merge_air_pattern_top:
+	; Called. Top row of pixels (so LCD row 0, 2, etc)
+	; Expects B to be the row counter (29-1),
+	; and expects D to be the solidity mask.
+	; Merges the line pattern into A.
+
+	push af ; Popped at returns below
+
+	ld a, b
+	cp 29
+	jr nz, past_top
+	; Line pattern for the top row is always the same
+	ld a, %01100110
+	jr merge_air_pattern_with_mask
+past_top:
+	; We're on row 1 or further, we don't know which column...
+	bit 0, b
+	jr z, merge_air_pattern_with_mask_side
+
+	; Welp, nothing to do (no pixel here)
+	pop af
+	ret
+
+merge_air_pattern_bot:
+	; Called. Bottom row of pixels (so LCD row 1, 3, etc)
+	; Expects B to be the row counter (29-1),
+	; and expects D to be the solidity mask.
+	; Merges the line pattern into A.
+
+	push af ; Popped at returns below
+
+	bit 0, b
+	jr nz, merge_air_pattern_with_mask_side
+
+	; Welp, nothing to do (no pixel here)
+	pop af
+	ret
+
+merge_air_pattern_with_mask_side:
+	; Jumped from merge_air_pattern_[top|bot], returns on its behalf.
+
+	; One more thing, what column are we in?
+	ld a, (cur_lcd_col)
+	cp 0
+	jr z, merge_air_pattern_with_mask_left
+	cp 9
+	jr z, merge_air_pattern_with_mask_right
+
+	; Welp, nothing to do (not on the sides)
+	pop af
+	ret
+
+merge_air_pattern_with_mask_left:
+	ld a, %10000000
+	jr merge_air_pattern_with_mask
+merge_air_pattern_with_mask_right:
+	ld a, %00000001
+
+merge_air_pattern_with_mask:
+	; A should now be the pattern to add.
+	ld e, a ; stash the pattern in E
+	ld a, d ; get solidity mask
+	cpl ; invert to get the unsolid tiles
+	and e ; only pattern on unsolid tiles
+	ld e, a ; put pattern in E again
+	pop af ; get original A back
+	or e ; apply pattern
+
+	ret

@@ -12,7 +12,7 @@ render_room:
 	; In total, this routine uses the registers as follows:
 	; A: accumulator (constantly used)
 	; B: constantly counts things
-	; C: a pattern that gets OR'd with solid tiles
+	; C: a //// pattern that gets OR'd with solid tiles
 	; DE: quick 16-bit additions, and how get_tile_sprite returns sprites. And D gets the solidity mask
 	; HL: top and bottom byte of pixels for all 4 tiles
 	; IX: pointer to 4 raw tiles of room data/tile numbers, given by load_4_tiles
@@ -103,26 +103,36 @@ render_room_loop_lcd_col_row:
 	call get_solidity_mask
 	ld d, a
 
-	; Now display two rows of pixels!!
-	call _LCD_BUSY_QUICK
+	; Can almost display two rows of pixels!! First row 1. We need to apply patterns...
+	; First the solid tiles pattern
 	and c ; A is still solidity mask, C is pattern: apply pattern to solid tiles
 	ld e, h ; H is the top row of tileset sprites pixels
 	or e ; merge solid tiles pattern (A) with sprites (E)
 	rlc c ; rotate pattern left
+
+	; Then merge the UNSOLID (air) tiles, which is just a dashed line around the room
+	call merge_air_pattern_top
+
+	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
 	; Special case for the last row of tiles:
-	; the bottom pixel is part of the roomname
+	; the bottom pixel is part of the roomname,
+	; jump out if we're there
 	ld a, b
 	cp 1
 	jr z, render_roomname
 
-	call _LCD_BUSY_QUICK
 	ld a, d ; Set A to solidity mask (D)
 	and c ; apply pattern (C) to solid tiles (A)
 	ld e, l ; L is the bottom row of tileset sprites pixels
 	or e ; merge solid tiles pattern (A) with sprites (E)
 	rlc c ; rotate pattern left
+
+	; Merge the air pattern again, this time the bottom
+	call merge_air_pattern_bot
+
+	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
 	djnz render_room_loop_lcd_col_row ; never actually hits 0 due to the check above
