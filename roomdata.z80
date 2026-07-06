@@ -15,8 +15,8 @@ load_4_tiles:
 	ld a, (cur_lcd_col)
 	rl a ; x2
 	rl a ; x4
-	ld d, a
-	ld e, 0
+	ld d, 0
+	ld e, a
 	add ix, de
 
 	; Now add the Y tile number. If we're not at Y=0

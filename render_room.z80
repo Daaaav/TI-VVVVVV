@@ -20,6 +20,7 @@ render_room_loop_lcd_col:
 	jr z, end_render_room
 
 	; Definitely gonna draw now! Set LCD position
+	add a, LCD_COL ; we already had the column 0-9!
 	call _LCD_BUSY_QUICK
 	out (LCDinstPort), a
 	call _LCD_BUSY_QUICK
@@ -52,12 +53,12 @@ render_room_loop_lcd_col_row:
 	; Extract the pixels for tile B
 	ld a, d
 	and %00110000
-	and h
+	or h
 	ld h, a
 
 	ld a, e
 	and %00110000
-	and l
+	or l
 	ld l, a
 
 	; Tile C
@@ -67,12 +68,12 @@ render_room_loop_lcd_col_row:
 	; Extract the pixels for tile C
 	ld a, d
 	and %00001100
-	and h
+	or h
 	ld h, a
 
 	ld a, e
 	and %00001100
-	and l
+	or l
 	ld l, a
 
 	; Tile D
@@ -82,12 +83,12 @@ render_room_loop_lcd_col_row:
 	; Extract the pixels for tile D
 	ld a, d
 	and %00000011
-	and h
+	or h
 	ld h, a
 
 	ld a, e
 	and %00000011
-	and l
+	or l
 	ld l, a
 
 	; Now display two rows of pixels!!
@@ -99,4 +100,10 @@ render_room_loop_lcd_col_row:
 	out (LCDdataPort), a
 
 	djnz render_room_loop_lcd_col_row
+
+	; Next LCD column
+	ld a, (cur_lcd_col)
+	inc a
+	ld (cur_lcd_col), a
+
 	jp render_room_loop_lcd_col

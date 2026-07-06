@@ -6,6 +6,7 @@ main:
 
 main_loop:
 	; all the code here
+	call render_room
 
 get_key:
 	B_CALL(_GetKey)
