@@ -1,0 +1,64 @@
+main:
+	res AppAutoScroll, (IY+AppFlags)
+	B_CALL(_RunIndicOff)
+
+	B_CALL(_ClrLCDFull)
+
+main_loop:
+	; all the code here
+
+get_key:
+	B_CALL(_GetKey)
+
+	cp kQuit
+	jr z, exit_prog
+	cp kClear
+	jr z, exit_prog
+	cp kLeft
+	jp z, go_left
+	cp kRight
+	jp z, go_right
+	cp kUp
+	jp z, go_up
+	cp kDown
+	jp z, go_down
+
+	jp get_key
+
+exit_prog:
+	B_CALL(_RunIndicOn)
+	set AppAutoScroll, (IY+AppFlags)
+
+	ret
+
+
+go_left:
+	ld a, (room_x)
+	call dec_coord
+	ld (room_x), a
+	jp main_loop
+go_right:
+	ld a, (room_x)
+	call inc_coord
+	ld (room_x), a
+	jp main_loop
+go_up:
+	ld a, (room_y)
+	call dec_coord
+	ld (room_y), a
+	jp main_loop
+go_down:
+	ld a, (room_y)
+	call inc_coord
+	ld (room_y), a
+	jp main_loop
+dec_coord:
+	cp 0
+	ret z
+	dec a
+	ret
+inc_coord:
+	cp 19
+	ret z
+	dec a
+	ret

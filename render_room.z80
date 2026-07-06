@@ -1,0 +1,102 @@
+cur_lcd_col: .db 0
+
+end_render_room:
+	ei
+	ret
+
+render_room:
+	; Called. So we render the room with the following sequence (see this as a nested for loop):
+	; - 10 LCD columns (0 - 9) containing 4 tiles horizontally each
+	; - 29 tiles down (not 30 because of the roomname)
+	; - 2 pixels per tile
+	xor a
+	ld (cur_lcd_col), a
+
+	di
+
+render_room_loop_lcd_col:
+	ld a, (cur_lcd_col)
+	cp 10
+	jr z, end_render_room
+
+	; Definitely gonna draw now! Set LCD position
+	call _LCD_BUSY_QUICK
+	out (LCDinstPort), a
+	call _LCD_BUSY_QUICK
+	ld a, LCD_ROW
+	out (LCDinstPort), a
+
+	ld b, 29
+render_room_loop_lcd_col_row:
+	; Find the correct four tiles from the room data into IX
+	call load_4_tiles
+
+	; Tile A
+	ld a, (ix)
+	call get_tile_sprite
+
+	; Extract the pixels for tile A
+	; H is top row, L is bottom row
+	ld a, d
+	and %11000000
+	ld h, a
+
+	ld a, e
+	and %11000000
+	ld l, a
+
+	; Tile B
+	ld a, (ix+1)
+	call get_tile_sprite
+
+	; Extract the pixels for tile B
+	ld a, d
+	and %00110000
+	and h
+	ld h, a
+
+	ld a, e
+	and %00110000
+	and l
+	ld l, a
+
+	; Tile C
+	ld a, (ix+2)
+	call get_tile_sprite
+
+	; Extract the pixels for tile C
+	ld a, d
+	and %00001100
+	and h
+	ld h, a
+
+	ld a, e
+	and %00001100
+	and l
+	ld l, a
+
+	; Tile D
+	ld a, (ix+3)
+	call get_tile_sprite
+
+	; Extract the pixels for tile D
+	ld a, d
+	and %00000011
+	and h
+	ld h, a
+
+	ld a, e
+	and %00000011
+	and l
+	ld l, a
+
+	; Now display two rows of pixels!!
+	call _LCD_BUSY_QUICK
+	ld a, h
+	out (LCDdataPort), a
+	call _LCD_BUSY_QUICK
+	ld a, l
+	out (LCDdataPort), a
+
+	djnz render_room_loop_lcd_col_row
+	jp render_room_loop_lcd_col

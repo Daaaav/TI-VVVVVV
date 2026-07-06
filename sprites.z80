@@ -1,0 +1,104 @@
+get_tile_sprite:
+	; Called. Takes a tile num in A (0 for air etc), and puts its sprite into DE.
+	; D will contain the top half (4x repeated), and E the bottom half (4x repeated)
+	; For example, a top left corner tile:
+	; D: %11111111
+	; E: %10101010
+
+	cp 0 ; air
+	jr nz, tile_not_0
+	ld de, %0000000000000000
+	ret
+tile_not_0:
+	cp 1 ; ^
+	jr nz, tile_not_1
+	ld de, %1010101010101010
+	ret
+tile_not_1:
+	cp 2 ; v
+	jr nz, tile_not_2
+	ld de, %1010101010101010
+	ret
+tile_not_2:
+	cp 3 ; >
+	jr nz, tile_not_3
+	ld de, %1111111100000000
+	ret
+tile_not_3:
+	cp 3 ; <
+	jr nz, tile_not_4
+	ld de, %1111111100000000
+	ret
+tile_not_4:
+	cp $80 ; inside solid
+	jr nz, tile_not_80
+	ld de, %0000000000000000
+	ret
+tile_not_80:
+	cp $81 ; single-tile solid
+	jr nz, tile_not_81
+	ld de, %1111111111111111
+	ret
+tile_not_81:
+	cp $82 ; top-left solid
+	jr nz, tile_not_82
+	ld de, %1111111110101010
+	ret
+tile_not_82:
+	cp $83 ; top solid
+	jr nz, tile_not_83
+	ld de, %1111111100000000
+	ret
+tile_not_83:
+	cp $84 ; top-right solid
+	jr nz, tile_not_84
+	ld de, %1111111101010101
+	ret
+tile_not_84:
+	cp $85 ; left solid
+	jr nz, tile_not_85
+	ld de, %1010101010101010
+	ret
+tile_not_85:
+	cp $86 ; right solid
+	jr nz, tile_not_86
+	ld de, %0101010101010101
+	ret
+tile_not_86:
+	cp $87 ; bottom-left solid
+	jr nz, tile_not_87
+	ld de, %1010101011111111
+	ret
+tile_not_87:
+	cp $88 ; bottom solid
+	jr nz, tile_not_88
+	ld de, %0000000011111111
+	ret
+tile_not_88:
+	cp $89 ; bottom-right solid
+	jr nz, tile_not_89
+	ld de, %0101010111111111
+	ret
+tile_not_89:
+	cp $8A ; solid inside corner bottom right
+	jr nz, tile_not_8A
+	ld de, %0000000001010101
+	ret
+tile_not_8A:
+	cp $8B ; solid inside corner bottom left
+	jr nz, tile_not_8B
+	ld de, %0000000010101010
+	ret
+tile_not_8B:
+	cp $8C ; solid inside corner top right
+	jr nz, tile_not_8C
+	ld de, %0101010100000000
+	ret
+tile_not_8C:
+	cp $8D ; solid inside corner top left
+	jr nz, tile_not_8D
+	ld de, %1010101000000000
+	ret
+tile_not_8D:
+	ld de, %0000000000000000
+	ret
