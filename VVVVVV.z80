@@ -7,10 +7,6 @@
 
 _LCD_BUSY_QUICK .EQU $000B
 
-#define LCDWORD6 0
-#define LCDWORD8 1
-;#define LCDCOL(x) $20+x
-;#define LCDROW(y) $80+y
 #define LCD_COL $20
 #define LCD_ROW $80
 
@@ -20,7 +16,9 @@ _LCD_BUSY_QUICK .EQU $000B
 #include "render_right_bar.z80"
 #include "roomdata.z80"
 #include "sprites.z80"
+#include "compressed_rooms.z80"
 
 
+.end
 .end
 

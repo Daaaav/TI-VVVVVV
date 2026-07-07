@@ -66,3 +66,158 @@ get_solidity_mask_pastC:
 	or %00000011
 
 	ret
+
+
+load_room:
+	; Called. Makes sure room_data is filled with the room data.
+	call get_compressed_room
+
+	; Now IX has the compressed room data. Uncompress it!
+	ld de, room_data
+decompress_loop:
+	; Load the next instruction
+	ld a, (ix)
+	inc ix
+
+	; 00: NULL, stop
+	cp $00
+	ret z
+
+	; 02-08: Place a horizontal line of tiles of length 2-257
+	cp $08
+	jr z, decompress_normal_line_00
+	cp $02
+	jr z, decompress_normal_line_01
+	cp $03
+	jr z, decompress_normal_line_02
+	cp $04
+	jr z, decompress_normal_line_80
+	cp $05
+	jr z, decompress_normal_line_81
+	cp $06
+	jr z, decompress_normal_line_83
+	cp $07
+	jr z, decompress_normal_line_88
+
+	; 09-0A: Place a horizontal line of tiles of length 258-513
+	cp $09
+	jr z, decompress_large_line_00
+	cp $0A
+	jr z, decompress_large_line_80
+
+	; 01, 0B-0F: Unimplemented
+	cp $10
+	ret c
+
+	; 10-14: Place tile -0x10 (e.g. 0x14=0x03)
+	cp $15
+	jr c, decompress_place_min10
+
+	; 15-8F: Unimplemented
+	cp $90
+	ret c
+
+	; 90-9D: Place tile -0x10 (e.g. 0x94=0x83)
+	cp $9E
+	jr c, decompress_place_min10
+
+	; 9E-DF: Unimplemented
+	cp $E0
+	ret c
+
+	; FALLTHROUGH!
+
+decompress_repeat_row:
+	; E0-FF: Repeat previous row (40 tiles) xxxxx times
+	; E0-FF is 111xxxxx, and xxxxx is, you get the idea
+	and %00011111
+	ld b, a
+decompress_repeat_row_loop:
+	push bc
+
+	ld h, d \ ld l, e ; ld hl, de. Both HL and DE are now end of destination
+	ld bc, -40
+	add hl, bc ; HL is now 40 before the end
+	ld bc, 40
+
+	ldir ; copy 40 bytes from HL to DE
+
+	pop bc
+
+	djnz decompress_repeat_row_loop
+	jr decompress_loop
+
+
+decompress_normal_line_00:
+	ld a, $00
+	jr decompress_normal_line
+decompress_normal_line_01:
+	ld a, $01
+	jr decompress_normal_line
+decompress_normal_line_02:
+	ld a, $02
+	jr decompress_normal_line
+decompress_normal_line_80:
+	ld a, $80
+	jr decompress_normal_line
+decompress_normal_line_81:
+	ld a, $81
+	jr decompress_normal_line
+decompress_normal_line_83:
+	ld a, $83
+	jr decompress_normal_line
+decompress_normal_line_88:
+	ld a, $88
+
+decompress_normal_line:
+	; 02-08 continued.
+	; How many times to repeat?
+	; Two times, and then (the next compressed byte) amount of times.
+	; That byte can be between 0 and 255.
+	; DJNZ with 0 does 256 repetitions, so let's take one off here and then +1 B.
+	ld (de), a
+	inc de
+
+	ld b, (ix)
+	inc ix
+	inc b ; this might overflow and that's what we want, 0 = 256 repetitions
+decompress_normal_line_loop:
+	ld (de), a
+	inc de
+	djnz decompress_normal_line_loop
+	jr decompress_loop
+
+
+decompress_large_line_00:
+	ld a, $00
+	jr decompress_large_line
+decompress_large_line_80:
+	ld a, $80
+
+decompress_large_line:
+	; 09-0A continued.
+	; This starts to get a bit silly, but oh well.
+	ld (de), a
+	inc de
+
+	ld b, 0
+decompress_large_line_loop1:
+	ld (de), a
+	inc de
+	djnz decompress_large_line_loop1
+
+	ld b, (ix)
+	inc ix
+	inc b ; possible overflow, again, good
+decompress_large_line_loop2:
+	ld (de), a
+	inc de
+	djnz decompress_normal_line_loop
+	jp decompress_loop
+
+
+decompress_place_min10:
+	sub a, $10
+	ld (de), a
+	inc de
+	jp decompress_loop

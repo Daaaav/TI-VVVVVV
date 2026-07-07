@@ -7,7 +7,7 @@ main:
 	call render_right_bar
 
 main_loop:
-	; all the code here
+	call load_room
 	call render_room
 
 get_key:
@@ -63,5 +63,5 @@ dec_coord:
 inc_coord:
 	cp 19
 	ret z
-	dec a
+	inc a
 	ret
