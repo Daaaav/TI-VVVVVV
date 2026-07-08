@@ -1,6 +1,7 @@
 cur_lcd_col: .db 0
 
 end_render_room:
+	ld iy, Flags
 	ei
 	ret
 
@@ -15,7 +16,7 @@ render_room:
 	; C: a //// pattern that gets OR'd with solid tiles
 	; DE: quick 16-bit additions, and how get_tile_sprite returns sprites. And D gets the solidity mask
 	; HL: top and bottom byte of pixels for all 4 tiles
-	; IX: pointer to 4 raw tiles of room data/tile numbers, given by load_4_tiles
+	; IX and IY: used internally by load_4_tiles and get_solidity_mask
 	xor a
 	ld (cur_lcd_col), a
 
@@ -37,11 +38,11 @@ render_room_loop_lcd_col:
 
 	ld b, 29
 render_room_loop_lcd_col_row:
-	; Find the correct four tiles from the room data into IX
+	; Find the correct four tiles from the room data into (roomdata_4_tiles)
 	call load_4_tiles
 
 	; Tile A
-	ld a, (ix)
+	ld a, (roomdata_4_tiles)
 	call get_tile_sprite
 
 	; Extract the pixels for tile A
@@ -55,7 +56,7 @@ render_room_loop_lcd_col_row:
 	ld l, a
 
 	; Tile B
-	ld a, (ix + 1)
+	ld a, (roomdata_4_tiles + 1)
 	call get_tile_sprite
 
 	; Extract the pixels for tile B
@@ -70,7 +71,7 @@ render_room_loop_lcd_col_row:
 	ld l, a
 
 	; Tile C
-	ld a, (ix + 2)
+	ld a, (roomdata_4_tiles + 2)
 	call get_tile_sprite
 
 	; Extract the pixels for tile C
@@ -85,7 +86,7 @@ render_room_loop_lcd_col_row:
 	ld l, a
 
 	; Tile D
-	ld a, (ix + 3)
+	ld a, (roomdata_4_tiles + 3)
 	call get_tile_sprite
 
 	; Extract the pixels for tile D

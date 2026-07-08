@@ -1,6 +1,7 @@
 .NOLIST
 #include "ti83plus.inc"
 .LIST
+#include "vars.inc"
 
 .org 9D93h
 .db t2ByteTok, tAsmCmp

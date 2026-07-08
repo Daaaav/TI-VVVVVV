@@ -1,46 +1,123 @@
 room_x: .db 13
 room_y: .db 5
 
-room_data: .fill 1200, 0
-
 load_4_tiles:
-	; Called. Loads a pointer to the current 4 tiles into IX.
-	; B is the current tile Y inverted (29-1)
+	; Called. Loads the current 4 tiles as 4 bytes into (roomdata_4_tiles).
+	; Expects B to be the current tile Y inverted (29-1)
 	; (cur_lcd_col) is the current LCD column (of 4 tiles)
 	push bc
 
-	ld ix, room_data
+	; Start IX at the start of the tiles data.
+	; This is still 2 tiles per byte, with no solidity information.
+	ld ix, roomdata_tiles
+	; And start IY at the start of the solidity data.
+	; (Interrupts must be disabled and IY must be reset to Flags)
+	; This is packed in 8 tiles per byte,
+	; so we either need XXXX____ or ____XXXX
+	ld iy, roomdata_solid
 
-	; First add the horizontal position: the LCD column
+	; First add the Y tile number to both IX and IY. If we're not at Y=0
+	ld a, 29
+	sub b
+	jr z, load_4_tiles_y_endloop
+
+	; Add 40 tiles per line.
+	; For IX that's 20 bytes and for IY that's 5 bytes.
+	; Sadly, we can't "add ix, hl" or anything, and BC is tied up...
+	ld b, a
+load_4_tiles_y_loop:
+	ld de, 20
+	add ix, de
+	ld de, 5
+	add iy, de
+	djnz load_4_tiles_y_loop
+
+load_4_tiles_y_endloop:
+
+	; Now add the horizontal position: the LCD column.
+	; Each column takes 2 bytes in roomdata_tiles
 	ld a, (cur_lcd_col)
 	sla a ; x2
-	sla a ; x4
 	ld d, 0
 	ld e, a
 	add ix, de
 
-	; Now add the Y tile number. If we're not at Y=0
-	ld a, 29
-	sub b
-	jr z, load_4_tiles_endloop
-	ld b, a
-	ld de, 40
-load_4_tiles_loop:
-	add ix, de
-	djnz load_4_tiles_loop
+	; roomdata_solid is more interesting as we can't point to half a byte...
+	; Again, we need either XXXX____ or ____XXXX
+	ld a, (cur_lcd_col)
+	srl a ; shift right, bit 0 goes to carry.
+	jr nc, load_4_tiles_nocarry
+	ld d, 0
+	ld e, a
+	add iy, de
 
-load_4_tiles_endloop:
+	; (cur_lcd_col) was odd, so we need the right half
+	ld a, (iy)
+	and %00001111
+	ld b, a
+
+	jr load_4_tiles_pastcarry
+
+load_4_tiles_nocarry:
+	ld d, 0
+	ld e, a
+	add iy, de
+
+	; (cur_lcd_col) was even, so we need the left half
+	ld b, (iy)
+	srl b \ srl b \ srl b \ srl b
+
+load_4_tiles_pastcarry:
+
+	; So now we're there for the tiles, write them to (roomdata_4_tiles)
+	ld a, (ix)
+	srl a \ srl a \ srl a \ srl a
+	ld (roomdata_4_tiles), a
+	ld a, (ix)
+	and %00001111
+	ld (roomdata_4_tiles + 1), a
+
+	ld a, (ix + 1)
+	srl a \ srl a \ srl a \ srl a
+	ld (roomdata_4_tiles + 2), a
+	ld a, (ix + 1)
+	and %00001111
+	ld (roomdata_4_tiles + 3), a
+
+	; But we're still missing something: solidity!
+	; New definition for IX again to use it for a SET
+	ld ix, roomdata_4_tiles
+
+	bit 3, b
+	jr z, load_4_tiles_past_A
+	set 7, (ix)
+load_4_tiles_past_A:
+	bit 2, b
+	jr z, load_4_tiles_past_B
+	set 7, (ix + 1)
+load_4_tiles_past_B:
+	bit 1, b
+	jr z, load_4_tiles_past_C
+	set 7, (ix + 2)
+load_4_tiles_past_C:
+	bit 0, b
+	jr z, load_4_tiles_past_D
+	set 7, (ix + 3)
+load_4_tiles_past_D:
+
+	; We're finally done! (roomdata_4_tiles) is now set up
 	pop bc
 	ret
 
 
 get_solidity_mask:
 	; Called. Gets a mask of solid tiles for these four tiles in A.
-	; IX is expected to point to the start of the four tiles.
+	; (roomdata_4_tiles) is expected to have the four tiles.
 	; A's output is in pixels, so if you have solid-air-solid-air:
 	; %11001100
 
 	ld a, 0
+	ld ix, roomdata_4_tiles
 
 	bit 7, (ix)
 	jr z, get_solidity_mask_pastA
@@ -69,11 +146,13 @@ get_solidity_mask_pastC:
 
 
 load_room:
-	; Called. Makes sure room_data is filled with the room data.
+	; Called. Makes sure roomdata_tiles and roomdata_solid are filled with the room data.
 	call get_compressed_room
 
 	; Now IX has the compressed room data. Uncompress it!
-	ld de, room_data
+	; The decompression algorithm writes both roomdata_tiles and roomdata_solid,
+	; which are stored sequentially
+	ld de, roomdata_tiles
 decompress_loop:
 	; Load the next instruction
 	ld a, (ix)
@@ -83,141 +162,178 @@ decompress_loop:
 	cp $00
 	ret z
 
-	; 02-08: Place a horizontal line of tiles of length 2-257
-	cp $08
-	jr z, decompress_normal_line_00
+	; 01: Place any byte (any 2 tiles)
+	cp $01
+	jr z, decompress_any_byte
+
+	; 02: Place two zero bytes
 	cp $02
-	jr z, decompress_normal_line_01
-	cp $03
-	jr z, decompress_normal_line_02
-	cp $04
-	jr z, decompress_normal_line_80
-	cp $05
-	jr z, decompress_normal_line_81
-	cp $06
-	jr z, decompress_normal_line_83
-	cp $07
-	jr z, decompress_normal_line_88
+	jr z, decompress_00_00
 
-	; 09-0A: Place a horizontal line of tiles of length 258-513
-	cp $09
-	jr z, decompress_large_line_00
-	cp $0A
-	jr z, decompress_large_line_80
-
-	; 01, 0B-0F: Unimplemented
+	; 03-0F: Unimplemented
 	cp $10
 	ret c
 
-	; 10-14: Place tile -0x10 (e.g. 0x14=0x03)
-	cp $15
-	jr c, decompress_place_min10
+	; 10-1F: Horizontal line of tiles TTTT|TTTT
+	cp $20
+	jr c, decompress_pairbyte_line
 
-	; 15-8F: Unimplemented
-	cp $90
+	; 20-2F: Place byte 0000TTTT
+	cp $30
+	jr c, decompress_0T
+
+	; 30-3F: Place byte TTTT0000
+	cp $40
+	jr c, decompress_T0
+
+	; 40-4F: Place byte 0000TTTT, then a number of 00000000 bytes
+	cp $50
+	jr c, decompress_0T_and_zeroes
+
+	; 50-5F: Place byte TTTT0000, then a number of 00000000 bytes
+	cp $60
+	jr c, decompress_T0_and_zeroes
+
+	; 60-9F: Place a byte from a 64-byte lookup table
+	cp $A0
+	jp c, decompress_from_lut
+
+	; A0-BF: Unimplemented
+	cp $C0
 	ret c
 
-	; 90-9D: Place tile -0x10 (e.g. 0x94=0x83)
-	cp $9E
-	jr c, decompress_place_min10
-
-	; 9E-DF: Unimplemented
+	; C0-DF: Repeat previous 5 bytes xxxxx times (for solidity part)
 	cp $E0
-	ret c
+	jr c, decompress_repeat_row_5
 
+	; E0-FF: Repeat previous line (40 tiles, 20 bytes) xxxxx times
 	; FALLTHROUGH!
-
-decompress_repeat_row:
-	; E0-FF: Repeat previous row (40 tiles) xxxxx times
+decompress_repeat_row_20:
+	; E0-FF: Repeat previous 20 (tile) bytes xxxxx times
 	; E0-FF is 111xxxxx, and xxxxx is, you get the idea
 	and %00011111
 	ld b, a
-decompress_repeat_row_loop:
+decompress_repeat_row_loop_20:
 	push bc
 
 	ld h, d \ ld l, e ; ld hl, de. Both HL and DE are now end of destination
-	ld bc, -40
-	add hl, bc ; HL is now 40 before the end
-	ld bc, 40
+	ld bc, -20
+	add hl, bc ; HL is now 20 before the end
+	ld bc, 20
 
-	ldir ; copy 40 bytes from HL to DE
+	ldir ; copy 20 bytes from HL to DE
 
 	pop bc
 
-	djnz decompress_repeat_row_loop
+	djnz decompress_repeat_row_loop_20
+	jr decompress_loop
+
+decompress_repeat_row_5:
+	; C0-DF: Repeat previous 5 (solidity) bytes xxxxx times
+	; C0-DF is 110xxxxx, and xxxxx is, you get the idea
+	and %00011111
+	ld b, a
+decompress_repeat_row_loop_5:
+	push bc
+
+	ld h, d \ ld l, e ; ld hl, de. Both HL and DE are now end of destination
+	ld bc, -5
+	add hl, bc ; HL is now 5 before the end
+	ld bc, 5
+
+	ldir ; copy 5 bytes from HL to DE
+
+	pop bc
+
+	djnz decompress_repeat_row_loop_5
 	jr decompress_loop
 
 
-decompress_normal_line_00:
-	ld a, $00
-	jr decompress_normal_line
-decompress_normal_line_01:
-	ld a, $01
-	jr decompress_normal_line
-decompress_normal_line_02:
-	ld a, $02
-	jr decompress_normal_line
-decompress_normal_line_80:
-	ld a, $80
-	jr decompress_normal_line
-decompress_normal_line_81:
-	ld a, $81
-	jr decompress_normal_line
-decompress_normal_line_83:
-	ld a, $83
-	jr decompress_normal_line
-decompress_normal_line_88:
-	ld a, $88
+decompress_any_byte:
+	ld a, (ix)
+	inc ix
+	ld (de), a
+	inc de
+	jr decompress_loop
 
-decompress_normal_line:
-	; 02-08 continued.
-	; How many times to repeat?
+decompress_00_00:
+	xor a
+	ld (de), a
+	inc de
+	ld (de), a
+	inc de
+	jr decompress_loop
+
+decompress_pairbyte_line:
+	; Make A contain the byte to repeat
+	and %00001111
+	ld b, a
+	sla a \ sla a \ sla a \ sla a
+	or b
+
+	; FALLTHROUGH!
+decompress_repeat_byte:
+	; A is expected to contain the byte to repeat.
+	; The next compressed byte is expected to contain the amount of repetitions - 2
+	; So how many times to repeat?
 	; Two times, and then (the next compressed byte) amount of times.
 	; That byte can be between 0 and 255.
 	; DJNZ with 0 does 256 repetitions, so let's take one off here and then +1 B.
+
 	ld (de), a
 	inc de
 
 	ld b, (ix)
 	inc ix
 	inc b ; this might overflow and that's what we want, 0 = 256 repetitions
-decompress_normal_line_loop:
+decompress_repeat_byte_loop:
 	ld (de), a
 	inc de
-	djnz decompress_normal_line_loop
-	jr decompress_loop
+	djnz decompress_repeat_byte_loop
+	jp decompress_loop
 
 
-decompress_large_line_00:
-	ld a, $00
-	jr decompress_large_line
-decompress_large_line_80:
-	ld a, $80
+decompress_0T:
+	and %00001111
+	ld (de), a
+	inc de
+	jp decompress_loop
 
-decompress_large_line:
-	; 09-0A continued.
-	; This starts to get a bit silly, but oh well.
+decompress_T0:
+	sla a \ sla a \ sla a \ sla a
+	ld (de), a
+	inc de
+	jp decompress_loop
+
+decompress_0T_and_zeroes:
+	and %00001111
 	ld (de), a
 	inc de
 
+	xor a
+	jr decompress_repeat_byte
+
+decompress_T0_and_zeroes:
+	sla a \ sla a \ sla a \ sla a
+	ld (de), a
+	inc de
+
+	xor a
+	jr decompress_repeat_byte
+
+decompress_from_lut:
+	sub $60
+	ld hl, decompress_lut_data
 	ld b, 0
-decompress_large_line_loop1:
-	ld (de), a
-	inc de
-	djnz decompress_large_line_loop1
-
-	ld b, (ix)
-	inc ix
-	inc b ; possible overflow, again, good
-decompress_large_line_loop2:
-	ld (de), a
-	inc de
-	djnz decompress_normal_line_loop
-	jp decompress_loop
-
-
-decompress_place_min10:
-	sub a, $10
+	ld c, a
+	add hl, bc
+	ld a, (hl)
 	ld (de), a
 	inc de
 	jp decompress_loop
+
+decompress_lut_data:
+	.db $FF, $78, $34, $89, $23, $C3, $1F, $FC, $88, $56, $F8, $33, $FE, $A8, $3D, $7F
+	.db $3F, $8B, $45, $63, $7B, $A9, $C4, $2D, $83, $81, $65, $15, $79, $22, $E1, $61
+	.db $62, $1C, $11, $24, $3C, $87, $38, $25, $42, $C1, $8F, $E3, $67, $18, $92, $1E
+	.db $47, $43, $93, $C7, $97, $95, $41, $E7, $DF, $3E, $FD, $7C, $7E, $F1, $9F, $BA
