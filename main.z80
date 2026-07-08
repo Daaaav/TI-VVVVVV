@@ -4,6 +4,12 @@ main:
 
 	B_CALL(_ClrLCDFull)
 
+	; Initialize variables that need to be initialized
+	ld a, 13
+	ld (room_x), a
+	ld a, 5
+	ld (room_y), a
+
 	call render_right_bar
 
 main_loop:

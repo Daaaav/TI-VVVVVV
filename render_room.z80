@@ -1,5 +1,3 @@
-cur_lcd_col: .db 0
-
 end_render_room:
 	ld iy, Flags
 	ei

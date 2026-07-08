@@ -1,6 +1,3 @@
-room_x: .db 13
-room_y: .db 5
-
 load_4_tiles:
 	; Called. Loads the current 4 tiles as 4 bytes into (roomdata_4_tiles).
 	; Expects B to be the current tile Y inverted (29-1)
