@@ -4,6 +4,24 @@ main:
 
 	B_CALL(_ClrLCDFull)
 
+
+	; Some testing code for pages
+	B_CALL(_get_compressed_room_page1)
+	B_CALL(_get_compressed_room_page2)
+	B_CALL(_get_compressed_room_page3)
+
+	xor a
+	ld (CURCOL), a
+	ld (CURROW), a
+
+	ld hl, appBackUpScreen
+	B_CALL(_PutS)
+	B_CALL(_NewLine)
+
+	B_CALL(_GetKey)
+	B_CALL(_ClrLCDFull)
+
+
 	; Initialize variables that need to be initialized
 	ld a, 13
 	ld (room_x), a
@@ -38,7 +56,7 @@ exit_prog:
 	B_CALL(_RunIndicOn)
 	set AppAutoScroll, (IY+AppFlags)
 
-	ret
+	B_JUMP(_JForceCmdNoChar)
 
 
 go_left:

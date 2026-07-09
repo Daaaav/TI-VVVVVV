@@ -1,0 +1,77 @@
+; Jump table
+_get_compressed_room_page1 equ 44 * 3
+_get_compressed_room_page2 equ 45 * 3
+_get_compressed_room_page3 equ 46 * 3
+
+.org $4000
+
+	; MASTER FIELD
+	.db $80, $0F
+	.db $00, $00, $00, $00
+
+	; SIGNING KEY ID (2)
+	.db $80, $12
+	.db $01, $04
+
+	; REVISION NUMBER (1)
+	.db $80, $21
+	.db $01
+
+	; BUILD NUMBER (1)
+	.db $80, $31
+	.db $01
+
+	; NAME (8)
+	.db $80, $48
+	.db "VVVVVV", $00, $00
+
+	; NUMBER OF PAGES (1)
+	.db $80, $81
+	.db $04
+
+	; DISABLE TI SPLASH SCREEN (0)
+	.db $80, $90
+
+	; DATE (6)
+	.db $03, $26, $09, $04
+	.db $37, $85, $46, $54
+
+	; SIGNATURE
+	.db $02, $0D, $40, $A1, $6B, $99, $F6, $59, $BC, $67
+	.db $F5, $85, $9C, $09, $6C, $0F, $B4, $03, $9B, $C9
+	.db $03, $32, $2C, $E0, $03, $20, $E3, $2C, $F4, $2D
+	.db $73, $B4, $27, $C4, $A0, $72, $54, $B9, $EA, $7C
+	.db $3B, $AA, $16, $F6, $77, $83, $7A, $EE, $1A, $D4
+	.db $42, $4C, $6B, $8B, $13, $1F, $BB, $93, $8B, $FC
+	.db $19, $1C, $3C, $EC, $4D, $E5, $75
+
+	; LAST FIELD AND PADDING TO 128
+	.db $80, $7F
+	.db $00, $00, $00, $00
+	.db $00, $00, $00, $00
+	.db $00, $00, $00, $00
+	.db $00, $00, $00, $00
+	.db $00, $00, $00, $00
+
+	.db $00
+
+	jp main
+
+	.dw get_compressed_room_page1
+	.db 1
+	.dw get_compressed_room_page2
+	.db 2
+	.dw get_compressed_room_page3
+	.db 3
+
+#macro defpage(page)
+	.block ($8000-($ & $0000FFFF))
+	.org $4000+(page*$10000)
+#endmacro
+
+#macro endpage(page)
+	#if ($ & $0000FFFF) > $8000
+		.error "Page ",page," went over bounds by ",$-$8000," bytes."
+	#endif
+	.echo "Page ",page," free space: ",$8000-($ & $0000FFFF)
+#endmacro
