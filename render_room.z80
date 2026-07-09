@@ -6,7 +6,7 @@ end_render_room:
 render_room:
 	; Called. So we render the room with the following sequence (see this as a nested for loop):
 	; - 10 LCD columns (0 - 9) containing 4 tiles horizontally each
-	; - 29 tiles down (not 30 because of the roomname)
+	; - 30 tiles down (less if we have a roomname)
 	; - 2 pixels per tile
 	; In total, this routine uses the registers as follows:
 	; A: accumulator (constantly used)
@@ -34,7 +34,7 @@ render_room_loop_lcd_col:
 	ld a, LCD_ROW
 	out (LCDinstPort), a
 
-	ld b, 29
+	ld b, 30
 render_room_loop_lcd_col_row:
 	; Find the correct four tiles from the room data into (roomdata_4_tiles)
 	call load_4_tiles
@@ -115,12 +115,12 @@ render_room_loop_lcd_col_row:
 	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
-	; Special case for the last row of tiles:
+	; Special case for the second-to-last row of tiles:
 	; the bottom pixel is part of the roomname,
 	; jump out if we're there
-	ld a, b
-	cp 1
-	jr z, render_roomname
+	;ld a, b
+	;cp 2
+	;jr z, render_roomname
 
 	ld a, d ; Set A to solidity mask (D)
 	and c ; apply pattern (C) to solid tiles (A)
@@ -134,18 +134,25 @@ render_room_loop_lcd_col_row:
 	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
-	djnz render_room_loop_lcd_col_row ; never actually hits 0 due to the check above
+	djnz render_room_loop_lcd_col_row
+	jr render_room_next_lcd_col
 
 render_roomname:
-	ld b, 7
 	ld a, $FF
+	call _LCD_BUSY_QUICK
+	out (LCDdataPort), a
+
+	ld b, 6
+	ld a, %01010101
 render_roomname_loop:
 	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
+	rlc a ; rotate pattern left
+
 	djnz render_roomname_loop
 
-
+render_room_next_lcd_col:
 	; Next LCD column
 	ld a, (cur_lcd_col)
 	inc a

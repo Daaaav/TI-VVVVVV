@@ -106,22 +106,22 @@ tile_not_8D:
 
 merge_air_pattern_top:
 	; Called. Top row of pixels (so LCD row 0, 2, etc)
-	; Expects B to be the row counter (29-1),
+	; Expects B to be the row counter (30-1),
 	; and expects D to be the solidity mask.
 	; Merges the line pattern into A.
 
 	push af ; Popped at returns below
 
 	ld a, b
-	cp 29
+	cp 30
 	jr nz, past_top
 	; Line pattern for the top row is always the same
 	ld a, %01100110
 	jr merge_air_pattern_with_mask
 past_top:
-	; We're on row 1 or further, we don't know which column...
+	; We're on row 2 or further, we don't know which column...
 	bit 0, b
-	jr z, merge_air_pattern_with_mask_side
+	jr nz, merge_air_pattern_with_mask_side
 
 	; Welp, nothing to do (no pixel here)
 	pop af
@@ -129,14 +129,22 @@ past_top:
 
 merge_air_pattern_bot:
 	; Called. Bottom row of pixels (so LCD row 1, 3, etc)
-	; Expects B to be the row counter (29-1),
+	; Expects B to be the row counter (30-1),
 	; and expects D to be the solidity mask.
 	; Merges the line pattern into A.
 
 	push af ; Popped at returns below
 
+	ld a, b
+	cp 1
+	jr nz, past_bot
+	; Line pattern for the bottom row is always the same
+	ld a, %01100110
+	jr merge_air_pattern_with_mask
+past_bot:
+	; We're on row 27 or before, we don't know which column...
 	bit 0, b
-	jr nz, merge_air_pattern_with_mask_side
+	jr z, merge_air_pattern_with_mask_side
 
 	; Welp, nothing to do (no pixel here)
 	pop af

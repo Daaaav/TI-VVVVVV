@@ -1,6 +1,6 @@
 load_4_tiles:
 	; Called. Loads the current 4 tiles as 4 bytes into (roomdata_4_tiles).
-	; Expects B to be the current tile Y inverted (29-1)
+	; Expects B to be the current tile Y inverted (30-1)
 	; (cur_lcd_col) is the current LCD column (of 4 tiles)
 	push bc
 
@@ -14,7 +14,7 @@ load_4_tiles:
 	ld iy, roomdata_solid
 
 	; First add the Y tile number to both IX and IY. If we're not at Y=0
-	ld a, 29
+	ld a, 30
 	sub b
 	jr z, load_4_tiles_y_endloop
 
