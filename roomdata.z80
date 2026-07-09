@@ -171,6 +171,7 @@ get_compressed_room_not2:
 load_room:
 	; Called. Makes sure roomdata_tiles and roomdata_solid are filled with the room data.
 	call get_compressed_room
+	ld ix, roomdata_compressed
 
 	; Now IX has the compressed room data. Uncompress it!
 	; The decompression algorithm writes both roomdata_tiles and roomdata_solid,
