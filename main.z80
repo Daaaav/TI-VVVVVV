@@ -63,11 +63,17 @@ go_down:
 	jp main_loop
 dec_coord:
 	cp 0
-	ret z
+	jr z, dec_coord_wrap
 	dec a
+	ret
+dec_coord_wrap:
+	ld a, 19
 	ret
 inc_coord:
 	cp 19
-	ret z
+	jr z, inc_coord_wrap
 	inc a
+	ret
+inc_coord_wrap:
+	xor a
 	ret
