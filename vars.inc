@@ -7,6 +7,12 @@ room_x            .equ  appBackUpScreen + 754  ; 1 byte
 room_y            .equ  appBackUpScreen + 755  ; 1 byte
 cur_lcd_col       .equ  appBackUpScreen + 756  ; 1 byte
 
+; saveSScreen: 768 bytes
+
+roomdata_compressed  .equ  saveSScreen  ; variable length
+
+; tempSwapArea: 323 bytes
+
 
 ; General equates
 

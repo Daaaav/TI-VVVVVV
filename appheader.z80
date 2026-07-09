@@ -71,7 +71,7 @@ _get_compressed_room_page3 equ 46 * 3
 
 #macro endpage(page)
 	#if ($ & $0000FFFF) > $8000
-		.error "Page ",page," went over bounds by ",$-$8000," bytes."
+		.error "Page ",page," went over bounds by ",($ & $0000FFFF)-$8000," bytes."
 	#endif
 	.echo "Page ",page," free space: ",$8000-($ & $0000FFFF)
 #endmacro

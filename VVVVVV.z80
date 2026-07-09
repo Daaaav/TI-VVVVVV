@@ -10,32 +10,9 @@
 #include "render_right_bar.z80"
 #include "roomdata.z80"
 #include "sprites.z80"
+
+; This must be at the end
 #include "compressed_rooms.z80"
-
-endpage(0)
-
-defpage(1)
-get_compressed_room_page1:
-	ld a, 'H'
-	ld (appBackUpScreen), a
-	ret
-endpage(1)
-
-defpage(2)
-get_compressed_room_page2:
-	ld a, 'E'
-	ld (appBackUpScreen + 1), a
-	ret
-endpage(2)
-
-defpage(3)
-get_compressed_room_page3:
-	ld a, 'Y'
-	ld (appBackUpScreen + 2), a
-	xor a
-	ld (appBackUpScreen + 3), a
-	ret
-endpage(3)
 
 .end
 .end

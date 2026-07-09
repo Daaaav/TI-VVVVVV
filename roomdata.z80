@@ -142,6 +142,32 @@ get_solidity_mask_pastC:
 	ret
 
 
+get_compressed_room:
+	; Called. This is the fun part where we reach out to a different page, maybe!
+	; Page 0: y = 0-2 (3)
+	ld a, (room_y)
+	cp 3
+	jp c, get_compressed_room_page0
+
+	; Page 1: y = 3-8 (6)
+	cp 9
+	jr nc, get_compressed_room_not1
+	B_CALL(_get_compressed_room_page1)
+	ret
+
+get_compressed_room_not1:
+	; Page 2: y = 9-13 (5)
+	cp 14
+	jr nc, get_compressed_room_not2
+	B_CALL(_get_compressed_room_page2)
+	ret
+
+get_compressed_room_not2:
+	; Page 3: y = 14-19 (6)
+	B_CALL(_get_compressed_room_page3)
+	ret
+
+
 load_room:
 	; Called. Makes sure roomdata_tiles and roomdata_solid are filled with the room data.
 	call get_compressed_room
