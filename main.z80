@@ -19,22 +19,37 @@ main_loop:
 get_key:
 	B_CALL(_GetKey)
 
+	bit onInterrupt, (IY + onFlags)
+	jr nz, exit_prog
 	cp kQuit
 	jr z, exit_prog
 	cp kClear
 	jr z, exit_prog
+
 	cp kLeft
 	jp z, go_left
+	cp k4
+	jp z, go_left
+
 	cp kRight
 	jp z, go_right
+	cp k6
+	jp z, go_right
+
 	cp kUp
 	jp z, go_up
+	cp k8
+	jp z, go_up
+
 	cp kDown
+	jp z, go_down
+	cp k2
 	jp z, go_down
 
 	jp get_key
 
 exit_prog:
+	res onInterrupt, (IY + onFlags)
 	B_CALL(_RunIndicOn)
 	set AppAutoScroll, (IY+AppFlags)
 
