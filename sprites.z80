@@ -25,7 +25,7 @@ tile_not_2:
 	ld de, %1111111100000000
 	ret
 tile_not_3:
-	cp 3 ; <
+	cp 4 ; <
 	jr nz, tile_not_4
 	ld de, %1111111100000000
 	ret
