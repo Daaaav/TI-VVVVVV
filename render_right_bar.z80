@@ -19,7 +19,7 @@ render_right_bar:
 
 	; Set LCD pos
 	call _LCD_BUSY_QUICK
-	ld a, LCD_COL+$A
+	ld a, LCD_COL + $A
 	out (LCDinstPort), a
 	call _LCD_BUSY_QUICK
 	ld a, LCD_ROW
@@ -31,7 +31,7 @@ render_right_bar:
 
 	; Set LCD pos
 	call _LCD_BUSY_QUICK
-	ld a, LCD_COL+$B
+	ld a, LCD_COL + $B
 	out (LCDinstPort), a
 	call _LCD_BUSY_QUICK
 	ld a, LCD_ROW

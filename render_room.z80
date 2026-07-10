@@ -1,6 +1,66 @@
 end_render_room:
+	; Just in case a roomname went over for the previous room...
+	call _LCD_BUSY_QUICK
+	ld a, LCD_COL + $A
+	out (LCDinstPort), a
+	call _LCD_BUSY_QUICK
+	ld a, LCD_ROW + 57
+	out (LCDinstPort), a
+	ld b, 7
+	ld a, $00
+clear_roomname_loop1:
+	call _LCD_BUSY_QUICK
+	out (LCDdataPort), a
+	djnz clear_roomname_loop1
+
+	call _LCD_BUSY_QUICK
+	ld a, LCD_COL + $B
+	out (LCDinstPort), a
+	call _LCD_BUSY_QUICK
+	ld a, LCD_ROW + 57
+	out (LCDinstPort), a
+	ld b, 7
+	ld a, $00
+clear_roomname_loop2:
+	call _LCD_BUSY_QUICK
+	out (LCDdataPort), a
+	djnz clear_roomname_loop2
+
+	; Almost time to return!
 	ld iy, Flags
 	ei
+
+	; Now render the roomname, if we had one!
+	ld hl, (roomname_ptr)
+	ld a, (hl)
+	or a ; cp 0
+	ret z ; no roomname to display
+
+	; SStringLength expects the first character to be the number of bytes in the string
+	B_CALL(_SStringLength)
+
+	; How many pixels are left when displaying it?
+	ld a, 80
+	sub b
+	jr c, roomname_too_long
+
+	srl a ; /2
+	jr print_roomname
+roomname_too_long:
+	ld a, 0
+print_roomname:
+	ld (penCol), a
+	ld a, 57
+	ld (penRow), a
+
+	; VPutSN is different than SStringLength... It expects B to have the number of chars
+	; (And VPutS expects a null-terminated string so yeah)
+	ld b, (hl)
+	inc hl
+	set textInverse, (IY + textFlags)
+	B_CALL(_VPutSN)
+	res textInverse, (IY + textFlags)
+
 	ret
 
 render_room:
@@ -118,10 +178,17 @@ render_room_loop_lcd_col_row:
 	; Special case for the second-to-last row of tiles:
 	; the bottom pixel is part of the roomname,
 	; jump out if we're there
-	;ld a, b
-	;cp 2
-	;jr z, render_roomname
+	ld a, b
+	cp 2
+	jr nz, no_roomname_yet
 
+	ld ix, (roomname_ptr)
+	ld a, (ix)
+	or a ; cp 0
+	jr z, no_roomname_yet
+	jr render_roomname_bg
+
+no_roomname_yet:
 	ld a, d ; Set A to solidity mask (D)
 	and c ; apply pattern (C) to solid tiles (A)
 	ld e, l ; L is the bottom row of tileset sprites pixels
@@ -135,22 +202,30 @@ render_room_loop_lcd_col_row:
 	out (LCDdataPort), a
 
 	djnz render_room_loop_lcd_col_row
-	jr render_room_next_lcd_col
+	jr render_room_next_lcd_col_no_roomname
 
-render_roomname:
+render_roomname_bg:
 	ld a, $FF
 	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
 	ld b, 6
-	ld a, %01010101
-render_roomname_loop:
+	ld a, $FF
+render_roomname_bg_loop:
 	call _LCD_BUSY_QUICK
 	out (LCDdataPort), a
 
-	rlc a ; rotate pattern left
+	djnz render_roomname_bg_loop
+	jr render_room_next_lcd_col
 
-	djnz render_roomname_loop
+render_room_next_lcd_col_no_roomname:
+	; Clear possible remnants of a roomname, 4 pixels high...
+	ld b, 4
+	ld a, $00
+render_room_next_lcd_col_no_roomname_loop:
+	call _LCD_BUSY_QUICK
+	out (LCDdataPort), a
+	djnz render_room_next_lcd_col_no_roomname_loop
 
 render_room_next_lcd_col:
 	; Next LCD column
