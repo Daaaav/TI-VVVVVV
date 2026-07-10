@@ -58,8 +58,10 @@ print_roomname:
 	ld b, (hl)
 	inc hl
 	set textInverse, (IY + textFlags)
+	set textEraseBelow, (IY + textFlags)
 	B_CALL(_VPutSN)
 	res textInverse, (IY + textFlags)
+	res textEraseBelow, (IY + textFlags)
 
 	ret
 
