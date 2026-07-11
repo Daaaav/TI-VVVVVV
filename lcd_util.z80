@@ -1,0 +1,36 @@
+; General equates
+
+_LCD_BUSY_QUICK .equ $000B
+LCD_COL .equ $20
+LCD_ROW .equ $80
+LCD_WORD6 .equ 0
+LCD_WORD8 .equ 1
+
+#macro lcd_setcol(col)
+	; Set the LCD column (0-12 or 0-16)
+	; If col is not specified, A is assumed to be set to 0-12/0-16 instead.
+	#ifdef col
+		ld a, LCD_COL + col
+	#else
+		add a, LCD_COL
+	#endif
+	call _LCD_BUSY_QUICK
+	out (LCDinstPort), a
+#endmacro
+
+#macro lcd_setrow(row)
+	; Set the LCD row (0-63)
+	; If row is not specified, A is assumed to be set to 0-63 instead.
+	#ifdef row
+		ld a, LCD_ROW + row
+	#else
+		add a, LCD_ROW
+	#endif
+	call _LCD_BUSY_QUICK
+	out (LCDinstPort), a
+#endmacro
+
+#macro lcd_setpos(col, row)
+	lcd_setcol(col)
+	lcd_setrow(row)
+#endmacro

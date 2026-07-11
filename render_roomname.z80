@@ -1,0 +1,36 @@
+render_roomname:
+	; Called. Expects interrupts to be enabled now.
+	; Now render the roomname, if we had one!
+	ld hl, (roomname_ptr)
+	ld a, (hl)
+	or a ; cp 0
+	ret z ; no roomname to display
+
+	; SStringLength expects the first character to be the number of bytes in the string
+	B_CALL(_SStringLength)
+
+	; How many pixels are left when displaying it?
+	ld a, 80
+	sub b
+	jr c, roomname_too_long
+
+	srl a ; /2
+	jr print_roomname
+roomname_too_long:
+	ld a, 0
+print_roomname:
+	ld (penCol), a
+	ld a, 57
+	ld (penRow), a
+
+	; VPutSN is different than SStringLength... It expects B to have the number of chars
+	; (And VPutS expects a null-terminated string so yeah)
+	ld b, (hl)
+	inc hl
+	set textInverse, (IY + textFlags)
+	set textEraseBelow, (IY + textFlags)
+	B_CALL(_VPutSN)
+	res textInverse, (IY + textFlags)
+	res textEraseBelow, (IY + textFlags)
+
+	ret

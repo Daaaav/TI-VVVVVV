@@ -15,8 +15,7 @@ roomdata_compressed  .equ  saveSScreen  ; variable length
 ; tempSwapArea: 323 bytes
 
 
-; General equates
+; Flags
 
-_LCD_BUSY_QUICK .equ $000B
-LCD_COL .equ $20
-LCD_ROW .equ $80
+map_shown_flag .equ 0
+map_shown_byte .equ Asm_Flag1

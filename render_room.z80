@@ -1,67 +1,11 @@
 end_render_room:
-	; Just in case a roomname went over for the previous room...
-	call _LCD_BUSY_QUICK
-	ld a, LCD_COL + $A
-	out (LCDinstPort), a
-	call _LCD_BUSY_QUICK
-	ld a, LCD_ROW + 57
-	out (LCDinstPort), a
-	ld b, 7
-	ld a, $00
-clear_roomname_loop1:
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
-	djnz clear_roomname_loop1
-
-	call _LCD_BUSY_QUICK
-	ld a, LCD_COL + $B
-	out (LCDinstPort), a
-	call _LCD_BUSY_QUICK
-	ld a, LCD_ROW + 57
-	out (LCDinstPort), a
-	ld b, 7
-	ld a, $00
-clear_roomname_loop2:
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
-	djnz clear_roomname_loop2
+	call render_map_btn
 
 	; Almost time to return!
 	ld iy, Flags
 	ei
 
-	; Now render the roomname, if we had one!
-	ld hl, (roomname_ptr)
-	ld a, (hl)
-	or a ; cp 0
-	ret z ; no roomname to display
-
-	; SStringLength expects the first character to be the number of bytes in the string
-	B_CALL(_SStringLength)
-
-	; How many pixels are left when displaying it?
-	ld a, 80
-	sub b
-	jr c, roomname_too_long
-
-	srl a ; /2
-	jr print_roomname
-roomname_too_long:
-	ld a, 0
-print_roomname:
-	ld (penCol), a
-	ld a, 57
-	ld (penRow), a
-
-	; VPutSN is different than SStringLength... It expects B to have the number of chars
-	; (And VPutS expects a null-terminated string so yeah)
-	ld b, (hl)
-	inc hl
-	set textInverse, (IY + textFlags)
-	set textEraseBelow, (IY + textFlags)
-	B_CALL(_VPutSN)
-	res textInverse, (IY + textFlags)
-	res textEraseBelow, (IY + textFlags)
+	call render_roomname
 
 	ret
 

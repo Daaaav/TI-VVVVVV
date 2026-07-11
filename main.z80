@@ -4,17 +4,22 @@ main:
 
 	B_CALL(_ClrLCDFull)
 
-	; Initialize variables that need to be initialized
+	; Initialize variables and flags that need to be initialized
 	ld a, 13
 	ld (room_x), a
 	ld a, 5
 	ld (room_y), a
+	res map_shown_flag, (IY + map_shown_byte)
 
 	call render_right_bar
 
 main_loop:
 	call load_room
-	call render_room
+
+	bit map_shown_flag, (IY + map_shown_byte)
+	call z, render_room
+	bit map_shown_flag, (IY + map_shown_byte)
+	call nz, render_map
 
 get_key:
 	B_CALL(_GetKey)
@@ -45,6 +50,9 @@ get_key:
 	jp z, go_down
 	cp k2
 	jp z, go_down
+
+	cp kGraph
+	jp z, toggle_map
 
 	jp get_key
 
@@ -92,3 +100,16 @@ inc_coord:
 inc_coord_wrap:
 	xor a
 	ret
+
+toggle_map:
+	bit map_shown_flag, (IY + map_shown_byte)
+	jr z, open_map
+	res map_shown_flag, (IY + map_shown_byte)
+	jr post_toggle_map
+
+open_map:
+	set map_shown_flag, (IY + map_shown_byte)
+	B_CALL(_ClrLCDFull)
+post_toggle_map:
+	call render_right_bar
+	jp main_loop

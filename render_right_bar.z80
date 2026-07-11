@@ -14,8 +14,29 @@ right_bar_sprite:
 	.dw %0111111111111110
 	.dw %0111111111111110
 
+map_btn_sprite_off:
+	.dw %0011111111111110
+	.dw %0100000000000001
+	.dw %0101010010011001
+	.dw %0101110101010101
+	.dw %0101110111011001
+	.dw %0101010101010001
+	.dw %0101010101010001
+	.dw %0100000000000001
+
+map_btn_sprite_on:
+	.dw %0011111111111110
+	.dw %0111111111111111
+	.dw %0110101101100111
+	.dw %0110001010101011
+	.dw %0110001000100111
+	.dw %0110101010101111
+	.dw %0110101010101111
+	.dw %0111111111111111
+
 render_right_bar:
-	; Called
+	; Called.
+	di
 
 	; Set LCD pos
 	call _LCD_BUSY_QUICK
@@ -27,7 +48,8 @@ render_right_bar:
 
 	ld hl, right_bar_sprite
 	inc hl
-	call draw_14
+	ld b, 14
+	call draw_sprite_side
 
 	; Set LCD pos
 	call _LCD_BUSY_QUICK
@@ -38,19 +60,49 @@ render_right_bar:
 	out (LCDinstPort), a
 
 	ld hl, right_bar_sprite
-	call draw_14
+	ld b, 14
+	call draw_sprite_side
+
+	ei
+	ret
+
+render_map_btn:
+	; Called. Expects interrupts to still be disabled.
+	; Also doubles as a convenient way to erase any leftover parts
+	; of a roomname that went beyond the room border.
+	bit map_shown_flag, (IY + map_shown_byte)
+	jr z, render_map_btn_off
+	ld hl, map_btn_sprite_on
+	jr render_map_btn_do
+render_map_btn_off:
+	ld hl, map_btn_sprite_off
+render_map_btn_do:
+	push hl ; we'll need HL again for the other side
+	inc hl
+
+	lcd_setpos($A, 56)
+
+	ld b, 8
+	call draw_sprite_side
+
+	pop hl
+
+	lcd_setpos($B, 56)
+
+	ld b, 8
+	call draw_sprite_side
 
 	ret
 
-draw_14:
-	; Called. Expects hl to point to one of the sides of a 16-wide sprite
-	ld b, 14
-draw_14_loop:
+draw_sprite_side:
+	; Called. Expects hl to point to one of the sides of a 16-wide sprite,
+	; and expects B to contain the number of lines to print
+draw_sprite_side_loop:
 	call _LCD_BUSY_QUICK
 	ld a, (hl)
 	out (LCDdataPort), a
 	inc hl \ inc hl
 
-	djnz draw_14_loop
+	djnz draw_sprite_side_loop
 
 	ret
