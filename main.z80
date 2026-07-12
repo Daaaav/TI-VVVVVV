@@ -11,7 +11,7 @@ main:
 	ld (room_y), a
 	res map_shown_flag, (IY + map_shown_byte)
 
-	call render_right_bar
+	call render_right_bar_viridian
 
 main_loop:
 	call load_room
@@ -111,5 +111,5 @@ open_map:
 	set map_shown_flag, (IY + map_shown_byte)
 	B_CALL(_ClrLCDFull)
 post_toggle_map:
-	call render_right_bar
+	call render_right_bar_viridian
 	jp main_loop

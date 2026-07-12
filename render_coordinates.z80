@@ -1,0 +1,151 @@
+coord_digits:
+	.db %00001110
+	.db %00001010
+	.db %00001010
+	.db %00001010
+	.db %00001110
+
+	.db %00000010
+	.db %00000010
+	.db %00000010
+	.db %00000010
+	.db %00000010
+
+	.db %00001110
+	.db %00000010
+	.db %00001110
+	.db %00001000
+	.db %00001110
+
+	.db %00001110
+	.db %00000010
+	.db %00001110
+	.db %00000010
+	.db %00001110
+
+	.db %00001010
+	.db %00001010
+	.db %00001110
+	.db %00000010
+	.db %00000010
+
+	.db %00001110
+	.db %00001000
+	.db %00001110
+	.db %00000010
+	.db %00001110
+
+	.db %00001110
+	.db %00001000
+	.db %00001110
+	.db %00001010
+	.db %00001110
+
+	.db %00001110
+	.db %00000010
+	.db %00000010
+	.db %00000010
+	.db %00000010
+
+	.db %00001110
+	.db %00001010
+	.db %00001110
+	.db %00001010
+	.db %00001110
+
+	.db %00001110
+	.db %00001010
+	.db %00001110
+	.db %00000010
+	.db %00001110
+
+render_coordinates:
+	; Called from render_map.
+	; Assumes interrupts to be disabled.
+
+	; First draw the X coordinate
+	lcd_setpos(7, 1)
+	ld a, (room_x)
+	ld d, 0
+	call render_one_coordinate
+
+	; Then the Y coordinate
+	lcd_setpos(8, 1)
+	ld a, (room_y)
+	ld d, 1
+	call render_one_coordinate
+
+	; Second part of the comma
+	lcd_draw(%10000000)
+
+	ret
+
+render_one_coordinate:
+	; Called
+	cp 10
+	jr nc, render_one_coordinate_two_digits
+
+	; So one digit
+	call get_digit_sprite
+
+	ld b, 5
+render_one_coordinate_loop:
+	ld a, (hl)
+	call maybe_add_dot
+	lcd_draw()
+	inc hl
+	djnz render_one_coordinate_loop
+
+	ret
+
+render_one_coordinate_two_digits:
+	; Jumped from render_one_coordinate
+	sub 10
+
+	call get_digit_sprite
+
+	ld b, 5
+render_one_coordinate_two_digits_loop:
+	ld a, (hl)
+	or %00100000 ; 1 is easy :3
+	call maybe_add_dot
+	lcd_draw()
+	inc hl
+	djnz render_one_coordinate_two_digits_loop
+
+	ret
+
+get_digit_sprite:
+	; Called. Expects A to be 0-9.
+	; Returns a pointer to the digit sprite in HL.
+	ld b, a
+	sla a ; -> x2
+	sla a ; -> x4
+	add a, b ; -> x5
+
+	ld hl, coord_digits
+	ld b, 0
+	ld c, a
+	add hl, bc
+
+	ret
+
+maybe_add_dot:
+	; Called. Add a pixel on the left of A only IF:
+	; - this is the last row (B=1)
+	; - this is the last column (D=1)
+	ex af, af'
+	ld a, b
+	cp 1
+	jr nz, dont_add_dot
+	ex af, af'
+
+	bit 0, d
+	ret z
+
+	or %10000000
+	ret
+
+dont_add_dot:
+	ex af, af'
+	ret

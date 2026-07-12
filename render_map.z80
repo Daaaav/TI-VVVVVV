@@ -1,18 +1,3 @@
-end_render_map:
-	call render_map_current_room
-
-	; Set LCD word mode back to 8-bit
-	lcd_set_word8()
-
-	call render_map_roomname_bar
-	call render_map_btn
-
-	ei
-
-	call render_roomname
-
-	ret
-
 render_map:
 	; Called. Like render_room, but renders the map screen instead!
 	; First we'll just draw the grid blank, and then we'll add the one room.
@@ -27,7 +12,7 @@ render_map:
 render_map_loop_lcd_col:
 	ld a, (cur_lcd_col)
 	cp 12
-	jr z, end_render_map
+	jp z, end_render_map
 
 	; Definitely gonna draw now! Start on row 8
 	lcd_setcol() ; we already had the column 0-9!
@@ -251,3 +236,18 @@ render_map_roomname_bar_downwards_loop:
 
 	jr render_map_roomname_bar_rightwards_loop
 
+end_render_map:
+	call render_map_current_room
+
+	; Set LCD word mode back to 8-bit
+	lcd_set_word8()
+
+	call render_map_roomname_bar
+	call render_coordinates
+	call render_map_btn
+
+	ei
+
+	call render_roomname
+
+	ret

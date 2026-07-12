@@ -1,14 +1,3 @@
-end_render_room:
-	call render_map_btn
-
-	; Almost time to return!
-	ld iy, Flags
-	ei
-
-	call render_roomname
-
-	ret
-
 render_room:
 	; Called. So we render the room with the following sequence (see this as a nested for loop):
 	; - 10 LCD columns (0 - 9) containing 4 tiles horizontally each
@@ -29,7 +18,7 @@ render_room:
 render_room_loop_lcd_col:
 	ld a, (cur_lcd_col)
 	cp 10
-	jr z, end_render_room
+	jp z, end_render_room
 
 	; Definitely gonna draw now! Set pattern, and LCD position
 	ld c, %00010001
@@ -168,3 +157,14 @@ render_room_next_lcd_col:
 	ld (cur_lcd_col), a
 
 	jp render_room_loop_lcd_col
+
+end_render_room:
+	call render_map_btn
+
+	; Almost time to return!
+	ld iy, Flags
+	ei
+
+	call render_roomname
+
+	ret

@@ -34,7 +34,7 @@ map_btn_sprite_on:
 	.dw %0110101010101111
 	.dw %0111111111111111
 
-render_right_bar:
+render_right_bar_viridian:
 	; Called.
 	di
 

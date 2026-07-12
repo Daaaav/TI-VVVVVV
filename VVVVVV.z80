@@ -11,6 +11,7 @@
 #include "render_roomname.z80"
 #include "render_map.z80"
 #include "render_right_bar.z80"
+#include "render_coordinates.z80"
 #include "roomdata.z80"
 #include "sprites.z80"
 
