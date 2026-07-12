@@ -4,6 +4,7 @@ end_render_map:
 	; Set LCD word mode back to 8-bit
 	lcd_set_word8()
 
+	call render_map_roomname_bar
 	call render_map_btn
 
 	ei
@@ -211,3 +212,42 @@ render_map_setup_current_room:
 	ld b, a
 
 	ret
+
+render_map_roomname_bar:
+	; Called. This is actually pretty simple, but it's different than the one
+	; rendering over rooms because it is.
+
+	xor a
+	ld (cur_lcd_col), a
+
+render_map_roomname_bar_rightwards_loop:
+	; (cur_lcd_col) is still in A
+	cp 10
+	ret z
+
+	lcd_setcol()
+
+	lcd_setrow(57)
+	lcd_draw($FF)
+
+	ld hl, (roomname_ptr)
+	ld a, (hl)
+	or a ; cp 0
+	ld a, $FF
+	jr nz, no_make_white ; we have a roomname to display, keep the background
+
+	ld a, $00
+no_make_white:
+
+	ld b, 6
+render_map_roomname_bar_downwards_loop:
+	lcd_draw()
+
+	djnz render_map_roomname_bar_downwards_loop
+
+	ld a, (cur_lcd_col)
+	inc a
+	ld (cur_lcd_col), a
+
+	jr render_map_roomname_bar_rightwards_loop
+
