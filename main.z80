@@ -11,6 +11,61 @@ main:
 	ld (room_y), a
 	res map_shown_flag, (IY + map_shown_byte)
 
+	; TEST
+	call install_isr
+
+	xor a
+	ld (currow), a
+	ld (curcol), a
+
+   di
+   ld a,$80      ;8 hz
+   out ($30),a
+   ld a,0        ; no loop, no interrupt
+   out ($31),a
+   ld a,1       ;16 ticks / 8 hz equals 2 seconds
+   out ($32),a
+
+   nop
+
+   in a,(4)
+   bit 5,a       ;bit 5 tells if timer 1
+   jr z,fail_timer     ;is done
+
+	; Nice, timer pass!
+	ld a, ':'
+	B_CALL(_PutC)
+	ld a, 'D'
+	B_CALL(_PutC)
+
+	jr past_timer
+
+fail_timer:
+	; Aww, timer failed!
+	ld a, ':'
+	B_CALL(_PutC)
+	ld a, '/'
+	B_CALL(_PutC)
+
+past_timer:
+
+   xor a
+   out ($30),a   ;Turn off the timer.
+   out ($31),a
+   ei
+
+	B_CALL(_GetKey)
+
+	ld a, (contrast)
+	ld l, a
+	ld h, 0
+	B_CALL(_DispHL)
+
+	B_CALL(_GetKey)
+
+	B_CALL(_ClrLCDFull)
+	; TEST END
+
 	call render_right_bar_viridian
 
 main_loop:
@@ -54,9 +109,15 @@ get_key:
 	cp kGraph
 	jp z, toggle_map
 
+	cp kChs
+	jp z, do_delay_test_halt
+	cp kEnter
+	jp z, do_delay_test_nohalt
+
 	jp get_key
 
 exit_prog:
+	im 1
 	res onInterrupt, (IY + onFlags)
 	B_CALL(_RunIndicOn)
 	set AppAutoScroll, (IY+AppFlags)
@@ -113,3 +174,131 @@ open_map:
 post_toggle_map:
 	call render_right_bar_viridian
 	jp main_loop
+
+
+
+do_delay_test_nohalt:
+	B_CALL(_ClrLCDFull)
+
+	xor a
+	ld (currow), a
+	ld (curcol), a
+	ld a, 'b'
+	B_CALL(_PutC)
+	ld a, 'u'
+	B_CALL(_PutC)
+	ld a, 's'
+	B_CALL(_PutC)
+
+	ld h, 0
+	ld l, 0
+
+   di
+   ld a,$47      ;8 hz
+   out ($30),a
+   ld a,0        ; no loop, no interrupt
+   out ($31),a
+   ld a,8       ;16 ticks / 8 hz equals 2 seconds
+   out ($32),a
+wait:
+	inc hl
+   in a,(4)
+   bit 5,a       ;bit 5 tells if timer 1
+   jr z,wait     ;is done
+   xor a
+   out ($30),a   ;Turn off the timer.
+   out ($31),a
+   ei
+
+	B_CALL(_DispHL)
+	B_CALL(_GetKey)
+
+	jp main_loop
+
+
+do_delay_test_halt:
+	B_CALL(_ClrLCDFull)
+
+	xor a
+	ld (currow), a
+	ld (curcol), a
+	ld a, 'h'
+	B_CALL(_PutC)
+	ld a, 'l'
+	B_CALL(_PutC)
+	ld a, 't'
+	B_CALL(_PutC)
+
+	ld a, 1
+	ld (room_x), a
+
+	ld h, 0
+	ld l, 0
+
+   ;di
+   ld a,$47      ;8 hz
+   out ($30),a
+   ld a,2        ; no loop, yes interrupt
+   out ($31),a
+   ld a,8       ;16 ticks / 8 hz equals 2 seconds
+   out ($32),a
+	ei
+waithalt:
+	halt
+	inc hl
+	ld a, (room_x)
+	or a ; cp 0
+	jr nz,waithalt
+   ;ei
+
+	B_CALL(_DispHL)
+	B_CALL(_GetKey)
+
+	jp main_loop
+
+
+install_isr:
+	; Good luck
+	; https://wikiti.brandonw.net/index.php?title=83Plus:Ports:03
+	di
+
+	ld hl,$8B00
+	ld (hl),$8A
+	ld de,$8B01
+	ld bc,256
+	ldir
+
+	ld hl,Interrupt_Start
+	ld de,$8A8A
+	ld bc,Interrupt_End-Interrupt_Start
+	ldir
+
+	ld a,$8B
+	ld i,a
+	im 2
+	ei
+	ret
+
+Interrupt_Start:
+	ex af, af'
+
+	xor a
+	ld (room_y), a
+
+	in a,(4)
+	bit 5,a       ;bit 5 tells if timer 1
+	jr z, no_timer     ;is done
+
+	xor a
+	out ($30),a   ;Turn off the timer.
+	out ($31),a
+
+	ld (room_x), a
+
+	ex af, af'
+	ret
+
+no_timer:
+	ex af, af'
+	jp $0038
+Interrupt_End:
