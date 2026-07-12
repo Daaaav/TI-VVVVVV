@@ -38,26 +38,14 @@ render_right_bar:
 	; Called.
 	di
 
-	; Set LCD pos
-	call _LCD_BUSY_QUICK
-	ld a, LCD_COL + $A
-	out (LCDinstPort), a
-	call _LCD_BUSY_QUICK
-	ld a, LCD_ROW
-	out (LCDinstPort), a
+	lcd_setpos($A, 0)
 
 	ld hl, right_bar_sprite
 	inc hl
 	ld b, 14
 	call draw_sprite_side
 
-	; Set LCD pos
-	call _LCD_BUSY_QUICK
-	ld a, LCD_COL + $B
-	out (LCDinstPort), a
-	call _LCD_BUSY_QUICK
-	ld a, LCD_ROW
-	out (LCDinstPort), a
+	lcd_setpos($B, 0)
 
 	ld hl, right_bar_sprite
 	ld b, 14
@@ -98,9 +86,8 @@ draw_sprite_side:
 	; Called. Expects hl to point to one of the sides of a 16-wide sprite,
 	; and expects B to contain the number of lines to print
 draw_sprite_side_loop:
-	call _LCD_BUSY_QUICK
 	ld a, (hl)
-	out (LCDdataPort), a
+	lcd_draw()
 	inc hl \ inc hl
 
 	djnz draw_sprite_side_loop

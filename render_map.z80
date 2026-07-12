@@ -2,9 +2,7 @@ end_render_map:
 	call render_map_current_room
 
 	; Set LCD word mode back to 8-bit
-	call _LCD_BUSY_QUICK
-	ld a, LCD_WORD8
-	out (LCDinstPort), a
+	lcd_set_word8()
 
 	call render_map_btn
 
@@ -23,9 +21,7 @@ render_map:
 
 	di
 
-	call _LCD_BUSY_QUICK
-	ld a, LCD_WORD6
-	out (LCDinstPort), a
+	lcd_set_word6()
 
 render_map_loop_lcd_col:
 	ld a, (cur_lcd_col)
@@ -33,24 +29,17 @@ render_map_loop_lcd_col:
 	jr z, end_render_map
 
 	; Definitely gonna draw now! Start on row 8
-	add a, LCD_COL ; we already had the column 0-9!
-	call _LCD_BUSY_QUICK
-	out (LCDinstPort), a
-	call _LCD_BUSY_QUICK
-	ld a, LCD_ROW + 8
-	out (LCDinstPort), a
+	lcd_setcol() ; we already had the column 0-9!
+	lcd_setrow(8)
 
 	ld b, 21
 render_map_loop_lcd_col_row:
 	call map_get_blank_pixels
 
 	ld a, h
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
-
+	lcd_draw()
 	ld a, l
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	djnz render_map_loop_lcd_col_row
 
@@ -141,13 +130,11 @@ render_map_current_room:
 	; Odd, that means left
 	ld a, h
 	or %00111100
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	ld a, l
 	or %00111100
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	; Third line
 	dec b
@@ -155,8 +142,7 @@ render_map_current_room:
 
 	ld a, h
 	or %00111100
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	ret
 
@@ -164,13 +150,11 @@ render_map_current_room_even:
 	; Even, that means right
 	ld a, h
 	or %00000111
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	ld a, l
 	or %00000111
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	; Third line
 	dec b
@@ -178,8 +162,7 @@ render_map_current_room_even:
 
 	ld a, h
 	or %00000111
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	; And you know what else it means?
 	; It spills over rightwards, into the next LCD column!
@@ -187,23 +170,19 @@ render_map_current_room_even:
 	inc a
 	ld (cur_lcd_col), a
 
-	add a, LCD_COL
-	call _LCD_BUSY_QUICK
-	out (LCDinstPort), a
+	lcd_setcol()
 
 	ld a, (room_y)
 	sla a ; x2
 	add a, LCD_ROW + 8 + 1
-	call _LCD_BUSY_QUICK
-	out (LCDinstPort), a
+	lcd_instruction()
 
 	inc b
 	call map_get_blank_pixels
 
 	ld a, l
 	or %00100000
-	call _LCD_BUSY_QUICK
-	out (LCDdataPort), a
+	lcd_draw()
 
 	ret
 
@@ -217,17 +196,13 @@ render_map_setup_current_room:
 	srl a ; /2
 	inc a
 	ld (cur_lcd_col), a
-
-	add a, LCD_COL
-	call _LCD_BUSY_QUICK
-	out (LCDinstPort), a
+	lcd_setcol()
 
 	; Room-Y 0 is at B=21, room-Y 19 is at B=2
 	ld a, (room_y)
 	sla a ; x2
 	add a, LCD_ROW + 8
-	call _LCD_BUSY_QUICK
-	out (LCDinstPort), a
+	lcd_instruction()
 
 	ld a, (room_y)
 	ld b, a
