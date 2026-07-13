@@ -119,8 +119,8 @@ get_digit_sprite:
 	; Called. Expects A to be 0-9.
 	; Returns a pointer to the digit sprite in HL.
 	ld b, a
-	sla a ; -> x2
-	sla a ; -> x4
+	add a, a ; -> x2
+	add a, a ; -> x4
 	add a, b ; -> x5
 
 	ld hl, coord_digits

@@ -34,7 +34,7 @@ load_4_tiles_y_endloop:
 	; Now add the horizontal position: the LCD column.
 	; Each column takes 2 bytes in roomdata_tiles
 	ld a, (cur_lcd_col)
-	sla a ; x2
+	add a, a ; x2
 	ld d, 0
 	ld e, a
 	add ix, de
@@ -288,11 +288,22 @@ decompress_00_00:
 	inc de
 	jr decompress_loop
 
+shift_left_4:
+	; Called. Shifts A left 4 bits, so 00001011 becomes 10110000
+	; ADD is both smaller and faster than SLA.
+	; Actually could've used RLA or RLCA, but it doesn't matter lol
+	; (4 t-states and 1 byte) so let's pick the more human-legible option
+	add a, a
+	add a, a
+	add a, a
+	add a, a
+	ret
+
 decompress_pairbyte_line:
 	; Make A contain the byte to repeat
 	and %00001111
 	ld b, a
-	sla a \ sla a \ sla a \ sla a
+	call shift_left_4
 	or b
 
 	; FALLTHROUGH!
@@ -324,7 +335,7 @@ decompress_0T:
 	jp decompress_loop
 
 decompress_T0:
-	sla a \ sla a \ sla a \ sla a
+	call shift_left_4
 	ld (de), a
 	inc de
 	jp decompress_loop
@@ -338,7 +349,7 @@ decompress_0T_and_zeroes:
 	jr decompress_repeat_byte
 
 decompress_T0_and_zeroes:
-	sla a \ sla a \ sla a \ sla a
+	call shift_left_4
 	ld (de), a
 	inc de
 

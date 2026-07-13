@@ -159,7 +159,7 @@ render_map_current_room_even:
 	lcd_setcol()
 
 	ld a, (room_y)
-	sla a ; x2
+	add a, a ; x2
 	add a, LCD_ROW + 8 + 1
 	lcd_instruction()
 
@@ -186,7 +186,7 @@ render_map_setup_current_room:
 
 	; Room-Y 0 is at B=21, room-Y 19 is at B=2
 	ld a, (room_y)
-	sla a ; x2
+	add a, a ; x2
 	add a, LCD_ROW + 8
 	lcd_instruction()
 
